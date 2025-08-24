@@ -1,1 +1,1 @@
-web: cd backend && npm install --production && npm start 
+web: cd backend && npm cache clean --force && npm install --production --no-optional && npm start 

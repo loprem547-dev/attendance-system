@@ -1,5 +1,5 @@
 const mysql = require('mysql2');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 // สร้างการเชื่อมต่อฐานข้อมูล MySQL
 const connection = mysql.createConnection({

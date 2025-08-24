@@ -21,6 +21,12 @@ db.connectDatabase()
     .catch((err) => {
         console.error('❌ เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล:', err.message);
         console.error('🛑 เซิร์ฟเวอร์จะทำงานต่อไป แต่การใช้งานอาจมีปัญหา');
+        console.error('💡 ตรวจสอบ Environment Variables ใน Railway:');
+        console.error('   - DB_HOST: ' + (process.env.DB_HOST || 'ไม่ได้ตั้งค่า'));
+        console.error('   - DB_USER: ' + (process.env.DB_USER || 'ไม่ได้ตั้งค่า'));
+        console.error('   - DB_PASSWORD: ' + (process.env.DB_PASSWORD ? '***' : 'ไม่ได้ตั้งค่า'));
+        console.error('   - DB_NAME: ' + (process.env.DB_NAME || 'ไม่ได้ตั้งค่า'));
+        console.error('   - DB_PORT: ' + (process.env.DB_PORT || 'ไม่ได้ตั้งค่า'));
     });
 
 // API Routes

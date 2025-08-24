@@ -1,37 +1,43 @@
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 
-// สร้างการเชื่อมต่อฐานข้อมูล MySQL
-const connection = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',           // หรือ IP address ของ MySQL Server
-    user: process.env.DB_USER || 'root',               // username ของ MySQL
-    password: process.env.DB_PASSWORD || 'atts',            // password ของ MySQL (ถ้ามี)
-    database: process.env.DB_NAME || 'student_db', // ชื่อฐานข้อมูล
-    port: process.env.DB_PORT || 3306                  // port ของ MySQL (ปกติ 3306)
-});
-
-// สร้าง pool connection แบบ promise
+// สร้าง connection pool แทน connection เดี่ยว
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'mainline.proxy.rlwy.net',
+    host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'HZzcsKocblZEYqkeQxjKfsfJYnlgnKSm',
-    database: process.env.DB_NAME || 'railway',
-    port: process.env.DB_PORT || 47811,
+    password: process.env.DB_PASSWORD || 'atts',
+    database: process.env.DB_NAME || 'student_db',
+    port: process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
-}).promise();
+    queueLimit: 0,
+    acquireTimeout: 60000,
+    timeout: 60000,
+    reconnect: true
+});
 
-// ฟังก์ชันทดสอบเชื่อมต่อฐานข้อมูล
-async function connectDatabase() {
-    try {
-        const connection = await pool.getConnection();
-        connection.release();
-        console.log('✅ เชื่อมต่อฐานข้อมูล MySQL สำเร็จ!');
-    } catch (error) {
-        console.error('❌ เชื่อมต่อฐานข้อมูล MySQL ไม่สำเร็จ:', error.message);
-        throw error;
-    }
+// ฟังก์ชันเชื่อมต่อฐานข้อมูล
+function connectDatabase() {
+    return new Promise((resolve, reject) => {
+        // ตรวจสอบการเชื่อมต่อ
+        pool.getConnection((err, connection) => {
+            if (err) {
+                console.error('❌ เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล:', err.message);
+                console.error('🔧 ตรวจสอบการตั้งค่าดังนี้:');
+                console.error('   - MySQL Server ทำงานอยู่หรือไม่');
+                console.error('   - Host: ' + (process.env.DB_HOST || 'localhost'));
+                console.error('   - Port: ' + (process.env.DB_PORT || 3306));
+                console.error('   - User: ' + (process.env.DB_USER || 'root'));
+                console.error('   - Database: ' + (process.env.DB_NAME || 'student_db'));
+                reject(err);
+            } else {
+                console.log('✅ เชื่อมต่อฐานข้อมูล MySQL สำเร็จ!');
+                console.log('📊 Database: ' + (process.env.DB_NAME || 'student_db'));
+                connection.release();
+                resolve();
+            }
+        });
+    });
 }
 
 // ฟังก์ชันดึงข้อมูลนักเรียนทั้งหมด
@@ -134,7 +140,7 @@ function registerUser(username, password, displayName, email, tel, role) {
             
             // ตรวจสอบว่ามี username นี้อยู่แล้วหรือไม่
             const checkQuery = 'SELECT id FROM users WHERE username = ?';
-            connection.query(checkQuery, [username], (err, results) => {
+            pool.query(checkQuery, [username], (err, results) => {
                 if (err) {
                     reject(err);
                     return;
@@ -151,7 +157,7 @@ function registerUser(username, password, displayName, email, tel, role) {
                     VALUES (?, ?, ?, ?, ?, ?)
                 `;
                 
-                connection.query(insertQuery, [username, hashedPassword, displayName, email, tel, role], (err, result) => {
+                pool.query(insertQuery, [username, hashedPassword, displayName, email, tel, role], (err, result) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -169,7 +175,7 @@ function registerUser(username, password, displayName, email, tel, role) {
 function checkUser(username, password) {
     return new Promise((resolve, reject) => {
         const query = 'SELECT * FROM users WHERE username = ?';
-        connection.query(query, [username], async (err, results) => {
+        pool.query(query, [username], async (err, results) => {
             if (err) {
                 reject(err);
             } else if (results.length === 0) {

@@ -238,7 +238,9 @@ app.post('/api/login', async (req, res) => {
         const user = await db.checkUser(username, password);
         
         if (user) {
+            // ไม่ส่งรหัสผ่านกลับ
             delete user.password;
+            // Map display_name เป็น displayName
             user.displayName = user.display_name;
             res.json({ success: true, user });
         } else {
@@ -247,6 +249,47 @@ app.post('/api/login', async (req, res) => {
     } catch (err) {
         console.error('เกิดข้อผิดพลาดในการเข้าสู่ระบบ:', err);
         res.status(500).json({ error: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ' });
+    }
+});
+
+// 9.1 สมัครสมาชิกใหม่
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, password, displayName, email, tel, role } = req.body;
+        
+        // ตรวจสอบข้อมูลที่จำเป็น
+        if (!username || !password || !displayName || !email || !tel || !role) {
+            return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+        }
+        
+        // ตรวจสอบความยาวรหัสผ่าน
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' });
+        }
+        
+        // ตรวจสอบรูปแบบอีเมล์
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'รูปแบบอีเมล์ไม่ถูกต้อง' });
+        }
+        
+        // ตรวจสอบรูปแบบเบอร์โทร
+        const telRegex = /^[0-9-+\s()]+$/;
+        if (!telRegex.test(tel)) {
+            return res.status(400).json({ error: 'รูปแบบเบอร์โทรไม่ถูกต้อง' });
+        }
+        
+        // สมัครสมาชิก
+        const result = await db.registerUser(username, password, displayName, email, tel, role);
+        res.json({ success: true, message: 'สมัครสมาชิกสำเร็จ', userId: result.userId });
+        
+    } catch (err) {
+        console.error('เกิดข้อผิดพลาดในการสมัครสมาชิก:', err);
+        if (err.message === 'ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว') {
+            res.status(400).json({ error: err.message });
+        } else {
+            res.status(500).json({ error: 'เกิดข้อผิดพลาดในการสมัครสมาชิก' });
+        }
     }
 });
 
@@ -259,6 +302,11 @@ app.use('/backgrounds', express.static(path.join(__dirname, 'backgrounds')));
 // เสิร์ฟ index.html เมื่อเข้า /
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
+});
+
+// เสิร์ฟ register.html เมื่อเข้า /register
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, '../register.html'));
 });
 
 // 10. ตรวจสอบสถานะการเชื่อมต่อฐานข้อมูล

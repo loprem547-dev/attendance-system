@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก - ระบบเช็คชื่อนักเรียน</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .register-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .register-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        
+        .register-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .register-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .login-link a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ffcdd2;
+            display: none;
+        }
+        
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #c8e6c9;
+            display: none;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="header">
+            <h1>📝 สมัครสมาชิก</h1>
+            <p>สร้างบัญชีใหม่สำหรับระบบเช็คชื่อนักเรียน</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
+        <form class="register-form" id="registerForm">
+            <div class="form-group">
+                <label for="username">ชื่อผู้ใช้งาน *</label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="กรอกชื่อผู้ใช้งาน">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">รหัสผ่าน *</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="กรอกรหัสผ่าน">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">ยืนยันรหัสผ่าน *</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required 
+                       placeholder="กรอกรหัสผ่านอีกครั้ง">
+            </div>
+            
+            <div class="form-group">
+                <label for="displayName">ชื่อที่แสดง *</label>
+                <input type="text" id="displayName" name="displayName" required 
+                       placeholder="ชื่อที่แสดงในระบบ">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">อีเมล์ *</label>
+                <input type="email" id="email" name="email" required 
+                       placeholder="example@email.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="tel">เบอร์ติดต่อ *</label>
+                <input type="tel" id="tel" name="tel" required 
+                       placeholder="081-234-5678">
+            </div>
+            
+            <div class="form-group">
+                <label for="role">บทบาท *</label>
+                <select id="role" name="role" required>
+                    <option value="">เลือกบทบาท</option>
+                    <option value="teacher">ครู</option>
+                    <option value="commu">แผนกวิชาสื่อสาร</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="register-btn">สมัครสมาชิก</button>
+        </form>
+        
+        <div class="login-link">
+            มีบัญชีอยู่แล้ว? <a href="/">เข้าสู่ระบบ</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // ซ่อนข้อความเก่า
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            // ตรวจสอบรหัสผ่าน
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showError('รหัสผ่านไม่ตรงกัน');
+                return;
+            }
+            
+            // ตรวจสอบความยาวรหัสผ่าน
+            if (password.length < 6) {
+                showError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+                return;
+            }
+            
+            // สร้างข้อมูลสำหรับส่ง
+            const formData = {
+                username: document.getElementById('username').value,
+                password: password,
+                displayName: document.getElementById('displayName').value,
+                email: document.getElementById('email').value,
+                tel: document.getElementById('tel').value,
+                role: document.getElementById('role').value
+            };
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('สมัครสมาชิกสำเร็จ! กำลังไปยังหน้าเข้าสู่ระบบ...');
+                    // รอ 2 วินาทีแล้วไปหน้า login
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    showError(result.error || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
+                }
+            } catch (error) {
+                showError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
+            }
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

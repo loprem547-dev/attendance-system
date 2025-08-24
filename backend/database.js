@@ -1,5 +1,14 @@
 const mysql = require('mysql2');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+
+// สร้างการเชื่อมต่อฐานข้อมูล MySQL
+const connection = mysql.createConnection({
+    host: process.env.DB_HOST || 'localhost',           // หรือ IP address ของ MySQL Server
+    user: process.env.DB_USER || 'root',               // username ของ MySQL
+    password: process.env.DB_PASSWORD || 'atts',            // password ของ MySQL (ถ้ามี)
+    database: process.env.DB_NAME || 'student_db', // ชื่อฐานข้อมูล
+    port: process.env.DB_PORT || 3306                  // port ของ MySQL (ปกติ 3306)
+});
 
 // สร้าง pool connection แบบ promise
 const pool = mysql.createPool({
@@ -116,18 +125,71 @@ async function updateStudentStatus(studentId, status, classroom) {
     return result;
 }
 
-// ฟังก์ชันตรวจสอบผู้ใช้และเช็ค password ด้วย bcrypt
-async function checkUser(username, password) {
-    const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
-    if (rows.length === 0) {
-        return null; // ไม่พบผู้ใช้
-    }
-    const user = rows[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-        return null; // รหัสผ่านไม่ถูกต้อง
-    }
-    return user; // ล็อกอินสำเร็จ
+// ฟังก์ชันสมัครสมาชิกใหม่
+function registerUser(username, password, displayName, email, tel, role) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // เข้ารหัสรหัสผ่าน
+            const hashedPassword = await bcrypt.hash(password, 10);
+            
+            // ตรวจสอบว่ามี username นี้อยู่แล้วหรือไม่
+            const checkQuery = 'SELECT id FROM users WHERE username = ?';
+            connection.query(checkQuery, [username], (err, results) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                
+                if (results.length > 0) {
+                    reject(new Error('ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว'));
+                    return;
+                }
+                
+                // เพิ่มผู้ใช้ใหม่
+                const insertQuery = `
+                    INSERT INTO users (username, password, display_name, email, tel, role) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `;
+                
+                connection.query(insertQuery, [username, hashedPassword, displayName, email, tel, role], (err, result) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({ success: true, userId: result.insertId });
+                    }
+                });
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+// อัปเดตฟังก์ชัน checkUser ให้ใช้ bcrypt
+function checkUser(username, password) {
+    return new Promise((resolve, reject) => {
+        const query = 'SELECT * FROM users WHERE username = ?';
+        connection.query(query, [username], async (err, results) => {
+            if (err) {
+                reject(err);
+            } else if (results.length === 0) {
+                resolve(null);
+            } else {
+                const user = results[0];
+                try {
+                    // ตรวจสอบรหัสผ่านด้วย bcrypt
+                    const isValidPassword = await bcrypt.compare(password, user.password);
+                    if (isValidPassword) {
+                        resolve(user);
+                    } else {
+                        resolve(null);
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            }
+        });
+    });
 }
 
 // ฟังก์ชันดึงสถิติการเข้าเรียนของนักเรียนแต่ละคนในช่วงวันที่
@@ -242,6 +304,7 @@ module.exports = {
     deleteTimeSlot,
     updateStudentStatus,
     checkUser,
+    registerUser,
     getAttendanceStatistics,
 
     // export ฟังก์ชันใหม่
